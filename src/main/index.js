@@ -1,6 +1,7 @@
 'use strict'
 
 import {app, BrowserWindow} from 'electron'
+// eslint-disable-next-line no-unused-vars
 
 /**
  * Set `__static` path to static files in production

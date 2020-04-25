@@ -19,15 +19,16 @@
             </v-card-title>
             <v-card-text>
                 <v-list>
-                    <v-list-item v-bind:key="name" v-for="(name, index) in eq_parameters_names">
+                    <v-list-item v-bind:key="name" v-for="name in getEqParametersNames">
                         <v-row dense justify="center" no-gutters>
                             <v-col class="align-self-center mr-5" cols="3">
                                 <span class="font-weight-bold float-right">{{name}}:</span>
                             </v-col>
                             <v-col cols="3">
-                                <v-text-field clearable
-                                              color="accent" dense filled hide-details
-                                              v-model="eq_parameters_values[index]"></v-text-field>
+                                <v-text-field :value="getParameterValue(name)" @input="setParameterValues(name, $event)"
+                                              clearable color="accent" dense
+                                              filled
+                                              hide-details></v-text-field>
                             </v-col>
                             <v-col cols="2"></v-col>
                         </v-row>
@@ -44,15 +45,16 @@
             </v-card-title>
             <v-card-text>
                 <v-list>
-                    <v-list-item v-bind:key="name" v-for="(name, index) in script_parameters_names">
+                    <v-list-item v-bind:key="name" v-for="name in getScriptParametersNames">
                         <v-row dense justify="center" no-gutters>
                             <v-col class="align-self-center mr-5" cols="3">
                                 <span class="font-weight-bold float-right">{{name}}:</span>
                             </v-col>
                             <v-col cols="3">
-                                <v-text-field clearable
-                                              color="accent" dense filled hide-details
-                                              v-model="script_parameters_values[index]"></v-text-field>
+                                <v-text-field :value="getParameterValue(name)" @input="setParameterValues(name, $event)"
+                                              clearable color="accent" dense
+                                              filled
+                                              hide-details></v-text-field>
                             </v-col>
                             <v-col cols="2"></v-col>
                         </v-row>
@@ -64,7 +66,7 @@
         <v-card class="m-2 p-2" color="background">
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="success">Вычислить</v-btn>
+                <v-btn @click="solveEquation" color="success">Вычислить</v-btn>
                 <v-spacer></v-spacer>
             </v-card-actions>
         </v-card>
@@ -73,19 +75,32 @@
 </template>
 
 <script>
+    import {SET_PARAMETER_VALUE, SOLVE_EQUATION} from '../store/modules/Equation'
+
     export default {
         name: 'EquationView',
         data () {
-            return {
-                eq_parameters_values: [0.59, 1.24, 5, 20],
-                eq_parameters_names: ['K', 'C', 'R', 'T'],
-                script_parameters_values: [0, 1, 1e-4],
-                script_parameters_names: ['Левая граница', 'Правая граница', 'Погрешность']
-            }
+            return {}
         },
         computed: {
-            equationRender () {
-                console.log('123')
+            getEqParametersNames () {
+                return this.$store.getters.getEqParametersNames
+            },
+            getScriptParametersNames () {
+                return this.$store.getters.getScriptParametersNames
+            }
+        },
+        methods: {
+            getParameterValue (name) {
+                return this.$store.getters.getParameters[name]
+            },
+            setParameterValues (name, value) {
+                value = Number(value)
+                this.$store.dispatch(SET_PARAMETER_VALUE, {name, value})
+            },
+            solveEquation () {
+                console.log('here')
+                this.$store.dispatch(SOLVE_EQUATION)
             }
         }
     }
