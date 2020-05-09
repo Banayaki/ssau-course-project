@@ -12,20 +12,15 @@ const state = {
         'K': 0.59,
         'C': 1.24,
         'R': 5,
-        'T': 20,
-        'lb': 0,
-        'rb': 1,
-        'max_error': 1e-4
+        'T': 20
     },
     eqParametersNames: ['K', 'C', 'R', 'T'],
-    scriptParametersNames: ['lb', 'rb', 'max_error'],
     plotX: [],
     plotY: []
 }
 
 const getters = {
     getEqParametersNames: state => state.eqParametersNames,
-    getScriptParametersNames: state => state.scriptParametersNames,
     getParameters: state => state.parameters,
     getXValues: state => state.plotX,
     getYValues: state => state.plotY
@@ -53,11 +48,11 @@ const actions = {
         return new Promise((resolve, reject) => {
             postSolveEquation(state.parameters)
                 .then(response => {
-                    console.log(response)
                     dispatch(SET_PLOT_VALUES, response.data)
+                    resolve(response)
                 })
                 .catch(error => {
-                    console.log(error)
+                    reject(error)
                 })
         })
     }

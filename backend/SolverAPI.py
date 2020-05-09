@@ -1,9 +1,8 @@
+from EquationSolver import EquationSolver
 from flask import Blueprint, request
 from flask.views import MethodView
-
-from backend.EquationSolver import EquationSolver
-from backend.utils.Logging import Logging
-from backend.utils.ResponseHandler import make_response, response_from_exception
+from utils.Logging import Logging
+from utils.ResponseHandler import make_response, response_from_exception
 
 solver_blueprint = Blueprint('solver', __name__)
 
@@ -18,8 +17,8 @@ class SolverAPI(MethodView):
         self.logger.info('POST method is called')
         try:
             data = request.get_json()
-            K, C, R, T, lb, rb, max_error = self.parse_object(data)
-            x, y = self.equation_solver.solve(K, C, R, T, lb, rb, max_error)
+            K, C, R, T = self.parse_object(data)
+            x, y = self.equation_solver.solve(K, C, R, T)
             response_object = {
                 'x': x,
                 'y': y

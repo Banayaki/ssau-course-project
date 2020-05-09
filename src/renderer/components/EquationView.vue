@@ -14,7 +14,7 @@
         <v-card class="m-2 p-2" color="background">
             <v-card-title>
                 <v-spacer></v-spacer>
-                <v-span>Параметры уравнения:</v-span>
+                <span>Параметры уравнения:</span>
                 <v-spacer></v-spacer>
             </v-card-title>
             <v-card-text>
@@ -25,8 +25,9 @@
                                 <span class="font-weight-bold float-right">{{name}}:</span>
                             </v-col>
                             <v-col cols="3">
-                                <v-text-field :value="getParameterValue(name)" @input="setParameterValues(name, $event)"
-                                              clearable color="accent" dense
+                                <v-text-field :rules="[rules.biggerThanZero]" :value="parameters[name]"
+                                              @input="setParameterValues(name, $event)" clearable color="accent"
+                                              dense
                                               filled
                                               hide-details></v-text-field>
                             </v-col>
@@ -38,35 +39,12 @@
         </v-card>
 
         <v-card class="m-2 p-2" color="background">
-            <v-card-title>
-                <v-spacer></v-spacer>
-                <v-span>Параметры вычислений:</v-span>
-                <v-spacer></v-spacer>
-            </v-card-title>
-            <v-card-text>
-                <v-list>
-                    <v-list-item v-bind:key="name" v-for="name in getScriptParametersNames">
-                        <v-row dense justify="center" no-gutters>
-                            <v-col class="align-self-center mr-5" cols="3">
-                                <span class="font-weight-bold float-right">{{name}}:</span>
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field :value="getParameterValue(name)" @input="setParameterValues(name, $event)"
-                                              clearable color="accent" dense
-                                              filled
-                                              hide-details></v-text-field>
-                            </v-col>
-                            <v-col cols="2"></v-col>
-                        </v-row>
-                    </v-list-item>
-                </v-list>
+            <v-card-text class="text-danger font-weight-bold text-center" v-if="checkParameters">
+                Значения коэффициентов дифференциального уравнения должны быть больше нуля
             </v-card-text>
-        </v-card>
-
-        <v-card class="m-2 p-2" color="background">
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn @click="solveEquation" color="success">Вычислить</v-btn>
+                <v-btn :disabled="checkParameters" @click="solveEquation" color="success">Вычислить</v-btn>
                 <v-spacer></v-spacer>
             </v-card-actions>
         </v-card>
@@ -80,14 +58,21 @@
     export default {
         name: 'EquationView',
         data () {
-            return {}
+            return {
+                rules: {
+                    biggerThanZero: value => value > 0
+
+                },
+                parameters: Object.assign({}, this.$store.getters.getParameters)
+            }
         },
         computed: {
             getEqParametersNames () {
                 return this.$store.getters.getEqParametersNames
             },
-            getScriptParametersNames () {
-                return this.$store.getters.getScriptParametersNames
+            checkParameters () {
+                return Object.values(this.$store.getters.getParameters)
+                    .filter(item => item <= 0 || isNaN(item)).length !== 0
             }
         },
         methods: {
@@ -99,8 +84,13 @@
                 this.$store.dispatch(SET_PARAMETER_VALUE, {name, value})
             },
             solveEquation () {
-                console.log('here')
                 this.$store.dispatch(SOLVE_EQUATION)
+                    .then(response => {
+                        console.log(response)
+                    })
+                    .catch(error => {
+                        console.log(error)
+                    })
             }
         }
     }

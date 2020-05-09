@@ -12,9 +12,14 @@
 
         <div class="body mt-3">
             <v-row no-gutters>
-                <v-spacer></v-spacer>
-                <span>Dialog box</span>
-                <v-spacer></v-spacer>
+                <div class="d-flex flex-column text-center full-width">
+                    <v-spacer></v-spacer>
+                    <strong>Инструкция использования:</strong>
+                    <span>1. Ввести параметры для решения дифференциального уравнения (значения параметров должны быть
+                больше нуля)</span>
+                    <span>2. Нажать кнопку вычислить</span>
+                    <v-spacer></v-spacer>
+                </div>
             </v-row>
             <v-row no-gutters>
                 <v-col>
@@ -39,5 +44,7 @@
 </script>
 
 <style scoped>
-
+    .full-width {
+        width: 100%;
+    }
 </style>
