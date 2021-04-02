@@ -7,7 +7,7 @@
 
             <v-spacer></v-spacer>
 
-            <v-toolbar-title>Мухин Артем и Килбас Игорь. Группа 6309</v-toolbar-title>
+            <v-toolbar-title>Мухин Артем и Килбас Игорь. Группа 6409</v-toolbar-title>
         </v-app-bar>
 
         <div class="body mt-3">

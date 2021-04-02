@@ -12,18 +12,24 @@ const state = {
         'K': 0.59,
         'C': 1.24,
         'R': 5,
-        'T': 20
+        'T': 20,
+        'Nx': 100,
+        'Nt': 100
     },
     eqParametersNames: ['K', 'C', 'R', 'T'],
+    numericalParametersNames: ['Nx', 'Nt'],
     plotX: [],
-    plotY: []
+    plotY: [],
+    plotNumY: []
 }
 
 const getters = {
     getEqParametersNames: state => state.eqParametersNames,
+    getNumericalParametersNames: state => state.numericalParametersNames,
     getParameters: state => state.parameters,
     getXValues: state => state.plotX,
-    getYValues: state => state.plotY
+    getYValues: state => state.plotY,
+    getNumericalYValues: state => state.plotNumY
 }
 
 const mutations = {
@@ -31,8 +37,9 @@ const mutations = {
         state.parameters[payload.name] = payload.value
     },
     [MUTATION_SET_PLOT_VALUE] (state, payload) {
-        state.plotX = payload.x
-        state.plotY = payload.y
+        state.plotX = payload.analytic.x
+        state.plotY = payload.analytic.y
+        state.plotNumY = payload.numerical.y
     }
 }
 

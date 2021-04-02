@@ -1,6 +1,7 @@
-from EquationSolver import EquationSolver
 from flask import Blueprint, request
 from flask.views import MethodView
+
+from EquationSolver import EquationSolver, NumericalEquationSolver
 from utils.Logging import Logging
 from utils.ResponseHandler import make_response, response_from_exception
 
@@ -12,16 +13,23 @@ class SolverAPI(MethodView):
     def __init__(self):
         self.logger = Logging.get_logger(self.__class__.__name__)
         self.equation_solver = EquationSolver()
+        self.num_equation_solver = NumericalEquationSolver()
 
     def post(self):
         self.logger.info('POST method is called')
         try:
             data = request.get_json()
-            K, C, R, T = self.parse_object(data)
-            x, y = self.equation_solver.solve(K, C, R, T)
+            K, C, R, T, Nx, Nt = self.parse_object(data)
+            x, y = self.equation_solver.solve(K, C, R, T, Nx)
+            n_y = self.num_equation_solver.solve(K, C, R, T, Nx, Nt)
             response_object = {
-                'x': x,
-                'y': y
+                'analytic': {
+                    'x': x,
+                    'y': y
+                },
+                'numerical': {
+                    'y': n_y,
+                }
             }
             return make_response(response_object)
         except Exception as e:
