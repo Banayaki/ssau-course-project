@@ -6,6 +6,7 @@ export const SOLVE_EQUATION = 'SOLVE_EQUATION'
 
 const MUTATION_SET_PARAMETER_VALUE = 'MUTATION_SET_PARAMETER_VALUE'
 const MUTATION_SET_PLOT_VALUE = 'MUTATION_SET_PLOT_VALUE'
+const MUTATION_CLEAR_PLOT_VALUE = 'MUTATION_CLEAR_PLOT_VALUE'
 
 const state = {
     parameters: {
@@ -14,22 +15,28 @@ const state = {
         'R': 5,
         'T': 20,
         'Nx': 100,
-        'Nt': 100
+        'Nt': 100,
+        'Implicit': true,
+        'Explicit': true
     },
     eqParametersNames: ['K', 'C', 'R', 'T'],
     numericalParametersNames: ['Nx', 'Nt'],
+    availableMethods: ['Implicit', 'Explicit'],
     plotX: [],
     plotY: [],
-    plotNumY: []
+    plotExplicitY: [],
+    plotImplicitY: []
 }
 
 const getters = {
     getEqParametersNames: state => state.eqParametersNames,
     getNumericalParametersNames: state => state.numericalParametersNames,
+    getAvailableSolvers: state => state.availableMethods,
     getParameters: state => state.parameters,
     getXValues: state => state.plotX,
     getYValues: state => state.plotY,
-    getNumericalYValues: state => state.plotNumY
+    getExplicitYValues: state => state.plotExplicitY,
+    getImplicitYValues: state => state.plotImplicitY
 }
 
 const mutations = {
@@ -37,9 +44,21 @@ const mutations = {
         state.parameters[payload.name] = payload.value
     },
     [MUTATION_SET_PLOT_VALUE] (state, payload) {
+        console.log(payload)
         state.plotX = payload.analytic.x
         state.plotY = payload.analytic.y
-        state.plotNumY = payload.numerical.y
+        if (payload.explicit) {
+            state.plotExplicitY = payload.explicit.y
+        }
+        if (payload.implicit) {
+            state.plotImplicitY = payload.implicit.y
+        }
+    },
+    [MUTATION_CLEAR_PLOT_VALUE] (state) {
+        state.plotX = []
+        state.plotY = []
+        state.plotExplicitY = []
+        state.plotImplicitY = []
     }
 }
 
@@ -51,7 +70,8 @@ const actions = {
     [SET_PLOT_VALUES] ({commit, state}, payload) {
         commit(MUTATION_SET_PLOT_VALUE, payload)
     },
-    [SOLVE_EQUATION] ({dispatch, state}) {
+    [SOLVE_EQUATION] ({commit, dispatch, state}) {
+        commit(MUTATION_CLEAR_PLOT_VALUE)
         return new Promise((resolve, reject) => {
             postSolveEquation(state.parameters)
                 .then(response => {

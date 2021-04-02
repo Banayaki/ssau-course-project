@@ -33,19 +33,28 @@ export default {
     yValues () {
       return this.$store.getters.getYValues
     },
-    NumericalYValues () {
-      return this.$store.getters.getNumericalYValues
+    ExplicitYValues () {
+      return this.$store.getters.getExplicitYValues
+    },
+    ImplicitYValues () {
+      return this.$store.getters.getImplicitYValues
     }
   },
   watch: {
     yValues () {
+      let _datasets = []
+      _datasets.push(this.createFunctionObject(this.yValues, 'Аналитическое', 'rgb(75, 192, 192)'))
+      if (this.ExplicitYValues.length !== 0) {
+        _datasets.push(this.createFunctionObject(this.ExplicitYValues, 'Явная', 'rgb(192, 75, 163)'))
+      }
+      if (this.ImplicitYValues.length !== 0) {
+        _datasets.push(this.createFunctionObject(this.ImplicitYValues, 'Неявная', 'rgb(39, 255, 0)'))
+      }
       const chartData = {
         type: 'line',
         data: {
           labels: this.xValues,
-          datasets: [
-            this.createFunctionObject(this.yValues, 'Аналитическое', 'rgb(75, 192, 192)'),
-            this.createFunctionObject(this.NumericalYValues, 'Численное', 'rgb(192, 75, 163)')]
+          datasets: _datasets
         },
         options: {
           width: 400,

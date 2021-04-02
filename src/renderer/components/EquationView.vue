@@ -18,26 +18,33 @@
         <v-spacer></v-spacer>
       </v-card-title>
       <v-card-text>
-        <v-list>
-          <v-list-item v-for="name in getEqParametersNames" v-bind:key="name">
-            <v-row dense justify="center" no-gutters>
-              <v-col class="align-self-center mr-5" cols="3">
-                <span class="font-weight-bold float-right">{{ name }}:</span>
-              </v-col>
-              <v-col cols="3">
-                <v-text-field v-model="parameters[name]"
-                              :rules="[rules.biggerThanZero(name, parameters[name])]"
-                              clearable
-                              color="accent"
-                              dense
-                              filled
-                              hide-details
-                              @input="setParameterValues(name, $event)"></v-text-field>
-              </v-col>
-              <v-col cols="2"></v-col>
-            </v-row>
-          </v-list-item>
-        </v-list>
+        <v-card>
+          <v-list>
+            <v-list-item v-for="name in getEqParametersNames" v-bind:key="name">
+              <v-row dense justify="center" no-gutters>
+                <v-col class="align-self-center mr-5" cols="3">
+                  <v-tooltip top>
+                    <template v-slot:activator="{ on, attrs }">
+                      <span v-bind="attrs" v-on="on" class="font-weight-bold float-right">{{ name }}:</span>
+                    </template>
+                    <span>{{ parametersNaming[name] }}</span>
+                  </v-tooltip>
+                </v-col>
+                <v-col cols="3">
+                  <v-text-field v-model="parameters[name]"
+                                :rules="[rules.biggerThanZero(name, parameters[name])]"
+                                clearable
+                                color="accent"
+                                dense
+                                filled
+                                hide-details
+                                @input="setParameterValues(name, $event)"></v-text-field>
+                </v-col>
+                <v-col cols="2"></v-col>
+              </v-row>
+            </v-list-item>
+          </v-list>
+        </v-card>
       </v-card-text>
     </v-card>
 
@@ -48,26 +55,39 @@
         <v-spacer></v-spacer>
       </v-card-title>
       <v-card-text>
-        <v-list>
-          <v-list-item v-for="name in getNumericalParametersNames" v-bind:key="name">
-            <v-row dense justify="center" no-gutters>
-              <v-col class="align-self-center mr-5" cols="3">
-                <span class="font-weight-bold float-right">{{ name }}:</span>
-              </v-col>
-              <v-col cols="3">
-                <v-text-field v-model="parameters[name]"
-                              :rules="[rules.biggerThanZero(name, parameters[name])]"
-                              clearable
-                              color="accent"
-                              dense
-                              filled
-                              hide-details
-                              @input="setParameterValues(name, $event)"></v-text-field>
-              </v-col>
-              <v-col cols="2"></v-col>
-            </v-row>
-          </v-list-item>
-        </v-list>
+        <v-card>
+          <v-row dense justify="center" no-gutters>
+            <v-col align-self="center" class="ml-10" cols="5">
+              <v-switch v-for="name in getAvailableSolvers" v-bind:key="name" :label="parametersNaming[name]"
+                        color="blue" dense
+                        hide-details @change="setParameterValues(name, $event)"></v-switch>
+            </v-col>
+            <v-col cols="6">
+              <v-list>
+                <v-list-item v-for="name in getNumericalParametersNames" v-bind:key="name">
+                  <v-col class="align-self-center mr-5" cols="3">
+                    <v-tooltip top>
+                      <template v-slot:activator="{ on, attrs }">
+                        <span v-bind="attrs" v-on="on" class="font-weight-bold float-right">{{ name }}:</span>
+                      </template>
+                      <span>{{ parametersNaming[name] }}</span>
+                    </v-tooltip>
+                  </v-col>
+                  <v-col cols="6">
+                    <v-text-field v-model="parameters[name]"
+                                  :rules="[rules.biggerThanZero(name, parameters[name])]"
+                                  clearable
+                                  color="accent"
+                                  dense
+                                  filled
+                                  hide-details
+                                  @input="setParameterValues(name, $event)"></v-text-field>
+                  </v-col>
+                </v-list-item>
+              </v-list>
+            </v-col>
+          </v-row>
+        </v-card>
       </v-card-text>
     </v-card>
 
@@ -92,10 +112,22 @@ export default {
   name: 'EquationView',
   data () {
     return {
+      parametersNaming: {
+        'K': 'Коэффициент теплопроводности (k)',
+        'C': 'Объемная теплоемкость (c)',
+        'R': 'Раидус (R)',
+        'T': 'Временной промежуток (T)',
+        'Nx': 'Мелкость разбиения по X (Nx)',
+        'Nt': 'Мелкость разбиения по T (Nt)',
+        'Implicit': 'Неявная схема',
+        'Explicit': 'Явная схема'
+      },
       rules: {
         biggerThanZero (name, value) {
           if (name === 'T') {
             return value >= 0
+          } else if (name === 'Nx' || name === 'Nt') {
+            return value > 0 && value < 2000
           } else {
             return value > 0
           }
@@ -116,18 +148,25 @@ export default {
     getNumericalParametersNames () {
       return this.$store.getters.getNumericalParametersNames
     },
+    getAvailableSolvers () {
+      return this.$store.getters.getAvailableSolvers
+    },
     checkParameters () {
-      let parameters = Object.values(this.$store.getters.getParameters)
-      if (parameters[parameters.length - 1] < 0 || isNaN(parameters[parameters.length - 1])) {
-        return true
-      }
-      return parameters.slice(0, parameters.length - 1)
-          .filter(item => item <= 0 || isNaN(item)).length !== 0
+      // console.log('here')
+      // let parameters = Object.values(this.$store.getters.getParameters)
+      // if (parameters[parameters.length - 1] < 0 || isNaN(parameters[parameters.length - 1])) {
+      //   return true
+      // }
+      // return parameters.slice(0, parameters.length - 1)
+      //     .filter(item => item <= 0 || isNaN(item)).length !== 0
+      return false
     }
   },
   methods: {
     setParameterValues (name, value) {
       value = Number(value)
+      console.log(name)
+      console.log(value)
       this.$store.dispatch(SET_PARAMETER_VALUE, {name, value})
     },
     solveEquation () {

@@ -42,15 +42,52 @@ class EquationSolver(metaclass=SingletonEquationSolver):
         return np.round(theta, 3).tolist(), (term0 + term1 + term3 + term5).tolist()
 
 
-class NumericalEquationSolver(metaclass=SingletonEquationSolver):
+class ImplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
 
     def __init__(self):
         self.logger = Logging.get_logger(self.__class__.__name__)
         self.logger.debug('EquationSolver is created')
 
     def solve(self, K, C, R, T, Nx, Nt):
-        # if C <= 0 or R <= 0 or K < 0 or ht <= 0 or Nx <= 0 or Nt <= 0 or T < 0:
-        #     raise ValueError('Некорректное значение коэфициентов. Проверьте правильность ввода')
+        if C <= 0 or R <= 0 or K < 0 or Nx <= 0 or Nt <= 0 or T < 0:
+            raise ValueError('Некорректное значение коэфициентов. Проверьте правильность ввода')
+
+        xs = np.linspace(0, np.pi, Nx + 1)
+        hx = np.pi / Nx
+        ht = T / Nt
+        u_k = self.__initial_condition(xs)
+        a = K / C
+
+        alpha = (a * a * ht) / (hx * hx * R * R)
+        beta = (a * a * ht) / (2 * R * R * hx)
+        A = np.zeros((Nx + 1, Nx + 1))
+
+        A[0, 0] = 1 + 4 * alpha
+        A[0, 1] = -4 * alpha
+        for i in range(1, Nx):
+            A[i, i - 1] = beta * np.cos(xs[i]) / np.sin(xs[i]) - alpha
+            A[i, i] = 1 + 2 * alpha
+            A[i, i + 1] = - beta * np.cos(xs[i]) / np.sin(xs[i]) - alpha
+        A[Nx, Nx - 1] = -4 * alpha
+        A[Nx, Nx] = 1 + 4 * alpha
+
+        for k in range(Nt):
+            u_k = linalg.solve(A, u_k)
+        return u_k.tolist()
+
+    def __initial_condition(self, xs):
+        return 2 + np.power(np.cos(xs), 5) + np.cos(xs)
+
+
+class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
+
+    def __init__(self):
+        self.logger = Logging.get_logger(self.__class__.__name__)
+        self.logger.debug('EquationSolver is created')
+
+    def solve(self, K, C, R, T, Nx, Nt):
+        if C <= 0 or R <= 0 or K < 0 or Nx <= 0 or Nt <= 0 or T < 0:
+            raise ValueError('Некорректное значение коэфициентов. Проверьте правильность ввода')
 
         xs = np.linspace(0, np.pi, Nx + 1)
         hx = np.pi / Nx
@@ -87,7 +124,7 @@ if __name__ == '__main__':
     Nx = 100
     Nt = 100
     T = 5
-    u = NumericalEquationSolver().solve(K, C, R, T, Nx, Nt)
+    u = ImplicitNumericalEquationSolver().solve(K, C, R, T, Nx, Nt)
     import matplotlib.pyplot as plt
 
     plt.plot(np.arange(len(u)), u)
