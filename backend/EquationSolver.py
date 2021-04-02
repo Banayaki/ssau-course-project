@@ -80,7 +80,7 @@ class ImplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
 
 
 class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
-
+    
     def __init__(self):
         self.logger = Logging.get_logger(self.__class__.__name__)
         self.logger.debug('EquationSolver is created')
@@ -88,32 +88,51 @@ class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
     def solve(self, K, C, R, T, Nx, Nt):
         if C <= 0 or R <= 0 or K < 0 or Nx <= 0 or Nt <= 0 or T < 0:
             raise ValueError('Некорректное значение коэфициентов. Проверьте правильность ввода')
-
+        
+        # --- Check stability condition
+        ht = T / Nt
+        hx = np.pi / Nx
+        gamma = ((K / C)**2 * ht) / (R**2 * hx**2)
+        if gamma > 0.5:
+            self.logger.debug('Не удовлетворено условие устойчивости: gamma < 0.5.')
+            self.logger.debug(f'Полученное разбиение сетки: Nx={Nx}, Nt={Nt}. Gamma={gamma}.')
+            Nt = self.__compute_nt(Nx, K, C, R, T)
+            ht = T / Nt
+            gamma = ((K / C)**2 * ht) / (R**2 * hx**2)
+            self.logger.debug(f'Используется обновленное Nt={Nt}. Gamma={gamma}.')
+            
+        # --- Constants
         xs = np.linspace(0, np.pi, Nx + 1)
         hx = np.pi / Nx
         ht = T / Nt
-        u_k = self.__initial_condition(xs)
         a = K / C
-
-        alpha = (a * a * ht) / (hx * hx * R * R)
-        beta = (a * a * ht) / (2 * R * R * hx)
-        A = np.zeros((Nx + 1, Nx + 1))
-
-        A[0, 0] = 1 + 4 * alpha
-        A[0, 1] = -4 * alpha
-        for i in range(1, Nx):
-            A[i, i - 1] = beta * np.cos(xs[i]) / np.sin(xs[i]) - alpha
-            A[i, i] = 1 + 2 * alpha
-            A[i, i + 1] = - beta * np.cos(xs[i]) / np.sin(xs[i]) - alpha
-        A[Nx, Nx - 1] = -4 * alpha
-        A[Nx, Nx] = 1 + 4 * alpha
-
+        
+        # Used in the main formula
+        ctg = lambda x: np.cos(x) / np.sin(x)
+        coeff0 = (a**2 * ht) / R**2 * (ctg(xs[1:-1]) / (hx * 2) + 1 / hx**2)
+        coeff1 = 1 - (2 * a**2 * ht) / (R**2 * hx**2)
+        coeff2 = (a**2 * ht) / (R**2 * hx) * (1 / hx - ctg(xs[1:-1]) / 2)
+        
+        # Used in the border conditions
+        alpha = (4 * a**2 * ht) / (R**2 * hx**2)
+        beta = 1 - alpha
+        
+        # --- Compute the solution values
+        u_k = self.__initial_condition(xs)
         for k in range(Nt):
-            u_k = linalg.solve(A, u_k)
+            # Update intermediate values i=1,I-1
+            u_k[1:-1] = u_k[2:] * coeff0 + u_k[1:-1] * coeff1 + u_k[:-2] * coeff2
+            # Update border values (i=0, i=I)
+            u_k[0] = u_k[1] * alpha + u_k[0] * beta
+            u_k[-1] = u_k[-2] * alpha + u_k[-1] * beta
         return u_k.tolist()
 
     def __initial_condition(self, xs):
         return 2 + np.power(np.cos(xs), 5) + np.cos(xs)
+    
+    def __compute_nt(self, nx, K, C, R, T):
+        a = K / C
+        return int(((a * nx) / (R * np.pi))**2 * 2 * T * 2)
 
 
 if __name__ == '__main__':
