@@ -31,14 +31,14 @@
                   </v-tooltip>
                 </v-col>
                 <v-col cols="3">
-                  <v-text-field v-model="parameters[name]"
-                                :rules="[rules.biggerThanZero(name, parameters[name])]"
+                  <v-text-field v-model.number="parameters[name]"
+                                :rules="[rules.bigRule(name, parameters[name])]"
                                 clearable
                                 color="accent"
                                 dense
                                 filled
                                 hide-details
-                                @input="setParameterValues(name, $event)"></v-text-field>
+                                type="number"></v-text-field>
                 </v-col>
                 <v-col cols="2"></v-col>
               </v-row>
@@ -58,9 +58,9 @@
         <v-card>
           <v-row dense justify="center" no-gutters>
             <v-col align-self="center" class="ml-10" cols="5">
-              <v-switch v-for="name in getAvailableSolvers" v-bind:key="name" :label="parametersNaming[name]"
-                        color="blue" dense
-                        hide-details @change="setParameterValues(name, $event)"></v-switch>
+              <v-switch v-for="name in getAvailableSolvers" v-bind:key="name" v-model="parameters[name]"
+                        :label="parametersNaming[name]" color="blue"
+                        dense hide-details></v-switch>
             </v-col>
             <v-col cols="6">
               <v-list>
@@ -74,14 +74,14 @@
                     </v-tooltip>
                   </v-col>
                   <v-col cols="6">
-                    <v-text-field v-model="parameters[name]"
-                                  :rules="[rules.biggerThanZero(name, parameters[name])]"
+                    <v-text-field v-model.number="parameters[name]"
+                                  :rules="[rules.bigRule(name, parameters[name])]"
                                   clearable
                                   color="accent"
                                   dense
                                   filled
                                   hide-details
-                                  @input="setParameterValues(name, $event)"></v-text-field>
+                                  type="number"></v-text-field>
                   </v-col>
                 </v-list-item>
               </v-list>
@@ -92,12 +92,19 @@
     </v-card>
 
     <v-card class="m-2 p-2" color="background">
-      <v-card-text v-if="checkParameters" class="text-danger font-weight-bold text-center">
+      <v-card-text v-if="errors" class="text-danger font-weight-bold text-center">
         Указаны некорректные значения коэффициентов дифференциального уравнения
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn :disabled="checkParameters" color="success" @click="solveEquation">Вычислить</v-btn>
+        <v-btn :disabled="waitingForResponse" color="success" @click="solveEquation">
+          <v-progress-circular
+              v-if="waitingForResponse"
+              color="black"
+              indeterminate
+          ></v-progress-circular>
+          <span v-else>Вычислить</span>
+        </v-btn>
         <v-spacer></v-spacer>
       </v-card-actions>
     </v-card>
@@ -123,8 +130,12 @@ export default {
         'Explicit': 'Явная схема'
       },
       rules: {
-        biggerThanZero (name, value) {
-          if (name === 'T') {
+        bigRule (name, value) {
+          if (name === 'Implicit' || name === 'Explicit') {
+            return true
+          } else if (isNaN(parseFloat(value))) {
+            return false
+          } else if (name === 'T') {
             return value >= 0
           } else if (name === 'Nx' || name === 'Nt') {
             return value > 0 && value < 2000
@@ -133,6 +144,7 @@ export default {
           }
         }
       },
+      errors: false,
       parameters: Object.assign({}, this.$store.getters.getParameters)
     }
   },
@@ -151,26 +163,30 @@ export default {
     getAvailableSolvers () {
       return this.$store.getters.getAvailableSolvers
     },
-    checkParameters () {
-      // console.log('here')
-      // let parameters = Object.values(this.$store.getters.getParameters)
-      // if (parameters[parameters.length - 1] < 0 || isNaN(parameters[parameters.length - 1])) {
-      //   return true
-      // }
-      // return parameters.slice(0, parameters.length - 1)
-      //     .filter(item => item <= 0 || isNaN(item)).length !== 0
-      return false
+    waitingForResponse () {
+      return this.$store.getters.getWaitingStatus
     }
   },
   methods: {
+    checkParameters () {
+      for (const [key, value] of Object.entries(this.parameters)) {
+        const check = this.rules.bigRule(key, value)
+        if (!check) {
+          return true
+        }
+      }
+      return false
+    },
     setParameterValues (name, value) {
       value = Number(value)
-      console.log(name)
-      console.log(value)
       this.$store.dispatch(SET_PARAMETER_VALUE, {name, value})
     },
     solveEquation () {
-      this.$store.dispatch(SOLVE_EQUATION)
+      this.errors = this.checkParameters()
+      if (this.errors) {
+        return
+      }
+      this.$store.dispatch(SOLVE_EQUATION, this.parameters)
           .then(response => {
             console.log(response)
           })

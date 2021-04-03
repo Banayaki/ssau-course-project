@@ -7,6 +7,7 @@ export const SOLVE_EQUATION = 'SOLVE_EQUATION'
 const MUTATION_SET_PARAMETER_VALUE = 'MUTATION_SET_PARAMETER_VALUE'
 const MUTATION_SET_PLOT_VALUE = 'MUTATION_SET_PLOT_VALUE'
 const MUTATION_CLEAR_PLOT_VALUE = 'MUTATION_CLEAR_PLOT_VALUE'
+const MUTATION_SET_WAITING = 'MUTATION_SET_WAITING'
 
 const state = {
     parameters: {
@@ -25,7 +26,8 @@ const state = {
     plotX: [],
     plotY: [],
     plotExplicitY: [],
-    plotImplicitY: []
+    plotImplicitY: [],
+    waitingStatus: false
 }
 
 const getters = {
@@ -36,7 +38,8 @@ const getters = {
     getXValues: state => state.plotX,
     getYValues: state => state.plotY,
     getExplicitYValues: state => state.plotExplicitY,
-    getImplicitYValues: state => state.plotImplicitY
+    getImplicitYValues: state => state.plotImplicitY,
+    getWaitingStatus: state => state.waitingStatus
 }
 
 const mutations = {
@@ -59,6 +62,9 @@ const mutations = {
         state.plotY = []
         state.plotExplicitY = []
         state.plotImplicitY = []
+    },
+    [MUTATION_SET_WAITING] (state, payload) {
+        state.waitingStatus = payload
     }
 }
 
@@ -70,15 +76,18 @@ const actions = {
     [SET_PLOT_VALUES] ({commit, state}, payload) {
         commit(MUTATION_SET_PLOT_VALUE, payload)
     },
-    [SOLVE_EQUATION] ({commit, dispatch, state}) {
+    [SOLVE_EQUATION] ({commit, dispatch, state}, payload) {
         commit(MUTATION_CLEAR_PLOT_VALUE)
+        commit(MUTATION_SET_WAITING, true)
         return new Promise((resolve, reject) => {
-            postSolveEquation(state.parameters)
+            postSolveEquation(payload)
                 .then(response => {
+                    commit(MUTATION_SET_WAITING, false)
                     dispatch(SET_PLOT_VALUES, response.data)
                     resolve(response)
                 })
                 .catch(error => {
+                    commit(MUTATION_SET_WAITING, false)
                     reject(error)
                 })
         })
