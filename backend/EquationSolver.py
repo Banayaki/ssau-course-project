@@ -132,7 +132,7 @@ class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
     
     def __compute_nt(self, nx, K, C, R, T):
         a = K / C
-        return int(((a * nx) / (R * np.pi))**2 * 2 * T * 2)
+        return int(((a * nx) / (R * np.pi))**2 * 2 * T * 1.05) + 1
 
 
 if __name__ == '__main__':
