@@ -61,6 +61,7 @@ class ImplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
         alpha = (a * a * ht) / (hx * hx * R * R)
         beta = (a * a * ht) / (2 * R * R * hx)
         A = np.zeros((Nx + 1, Nx + 1))
+        AB = np.zeros((3, Nx + 1))
 
         A[0, 0] = 1 + 4 * alpha
         A[0, 1] = -4 * alpha
@@ -71,8 +72,12 @@ class ImplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
         A[Nx, Nx - 1] = -4 * alpha
         A[Nx, Nx] = 1 + 4 * alpha
 
+        for i in range(Nx + 1):
+            for j in range(Nx + 1):
+                if A[i, j] != 0:
+                    AB[1 + i - j, j] = A[i, j]
         for k in range(Nt):
-            u_k = linalg.solve(A, u_k)
+            u_k = linalg.solve_banded((1, 1), AB, u_k)
         return u_k.tolist()
 
     def __initial_condition(self, xs):
@@ -80,43 +85,48 @@ class ImplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
 
 
 class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
-    
+
     def __init__(self):
         self.logger = Logging.get_logger(self.__class__.__name__)
         self.logger.debug('EquationSolver is created')
 
-    def solve(self, K, C, R, T, Nx, Nt):
+    def solve(self, K, C, R, T, Nx, Nt, force_stability):
         if C <= 0 or R <= 0 or K < 0 or Nx <= 0 or Nt <= 0 or T < 0:
             raise ValueError('Некорректное значение коэфициентов. Проверьте правильность ввода')
-        
+
+        is_stable = {'stable': True}
+
         # --- Check stability condition
         ht = T / Nt
         hx = np.pi / Nx
-        gamma = ((K / C)**2 * ht) / (R**2 * hx**2)
+        gamma = ((K / C) ** 2 * ht) / (R ** 2 * hx ** 2)
         if gamma > 0.5:
             self.logger.debug('Не удовлетворено условие устойчивости: gamma < 0.5.')
             self.logger.debug(f'Полученное разбиение сетки: Nx={Nx}, Nt={Nt}. Gamma={gamma}.')
-            Nt = self.__compute_nt(Nx, K, C, R, T)
-            ht = T / Nt
-            gamma = ((K / C)**2 * ht) / (R**2 * hx**2)
-            self.logger.debug(f'Используется обновленное Nt={Nt}. Gamma={gamma}.')
-            
+            is_stable['stable'] = False
+            if force_stability:
+                Nt = self.__compute_nt(Nx, K, C, R, T)
+                ht = T / Nt
+                gamma = ((K / C) ** 2 * ht) / (R ** 2 * hx ** 2)
+                is_stable['newNt'] = Nt
+                self.logger.debug(f'Используется обновленное Nt={Nt}. Gamma={gamma}.')
+
         # --- Constants
         xs = np.linspace(0, np.pi, Nx + 1)
         hx = np.pi / Nx
         ht = T / Nt
         a = K / C
-        
+
         # Used in the main formula
         ctg = lambda x: np.cos(x) / np.sin(x)
-        coeff0 = (a**2 * ht) / R**2 * (ctg(xs[1:-1]) / (hx * 2) + 1 / hx**2)
+        coeff0 = (a ** 2 * ht) / R ** 2 * (ctg(xs[1:-1]) / (hx * 2) + 1 / hx ** 2)
         coeff1 = 1 - (2 * a**2 * ht) / (R**2 * hx**2)
         coeff2 = (a**2 * ht) / (R**2 * hx) * (1 / hx - ctg(xs[1:-1]) / 2)
-        
+
         # Used in the border conditions
         alpha = (4 * a**2 * ht) / (R**2 * hx**2)
         beta = 1 - alpha
-        
+
         # --- Compute the solution values
         u_k = self.__initial_condition(xs)
         for k in range(Nt):
@@ -125,11 +135,11 @@ class ExplicitNumericalEquationSolver(metaclass=SingletonEquationSolver):
             # Update border values (i=0, i=I)
             u_k[0] = u_k[1] * alpha + u_k[0] * beta
             u_k[-1] = u_k[-2] * alpha + u_k[-1] * beta
-        return u_k.tolist()
+        return u_k.tolist(), is_stable
 
     def __initial_condition(self, xs):
         return 2 + np.power(np.cos(xs), 5) + np.cos(xs)
-    
+
     def __compute_nt(self, nx, K, C, R, T):
         a = K / C
         return int(((a * nx) / (R * np.pi))**2 * 2 * T * 1.05) + 1

@@ -1,12 +1,12 @@
 {
   "name": "first-course-project",
-  "version": "0.0.1",
+  "version": "2.0.2",
   "author": "Kilbas and Mukhin",
   "description": "An electron-vue project",
   "license": null,
   "main": "./dist/electron/main.js",
   "scripts": {
-    "build": "node .electron-vue/build.js && electron-builder",
+    "build": "node .electron-vue/build.js && electron-builder --windows",
     "build:dir": "node .electron-vue/build.js && electron-builder --dir",
     "build:clean": "cross-env BUILD_TARGET=clean node .electron-vue/build.js",
     "build:web": "cross-env BUILD_TARGET=web node .electron-vue/build.js",
@@ -21,6 +21,7 @@
   "build": {
     "productName": "first-course-project",
     "appId": "first.course.project",
+    "asar": false,
     "directories": {
       "output": "build"
     },
@@ -30,7 +31,7 @@
     },
     "files": [
       "dist/electron/**/*",
-      "dist/StartPythonBackend.exe"
+      "backend/dist/StartPythonBackend/**/*"
     ],
     "dmg": {
       "contents": [

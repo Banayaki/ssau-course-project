@@ -1,15 +1,35 @@
 <template>
   <div class="body">
     <v-card class="m-2 p-2" color="background">
-      <v-row class="mb-3" no-gutters>
+      <v-card-title>
         <v-spacer></v-spacer>
         <h2>График функции</h2>
         <v-spacer></v-spacer>
-      </v-row>
+      </v-card-title>
+      <v-card-text>
+        <v-card>
+          <canvas id="chart"></canvas>
+        </v-card>
+      </v-card-text>
     </v-card>
 
     <v-card class="m-2 p-2" color="background">
-      <canvas id="chart"></canvas>
+      <v-card-title>
+        <v-spacer></v-spacer>
+        <span>Параметры визуализации:</span>
+        <v-spacer></v-spacer>
+      </v-card-title>
+      <v-card-text>
+        <v-card class="pb-5">
+          <v-row dense justify="center" no-gutters>
+            <v-col align-self="center" class="ml-10" cols="5">
+              <v-switch v-model="lineSmoothing"
+                        color="blue" dense
+                        hide-details label="Сглаживание графиков"></v-switch>
+            </v-col>
+          </v-row>
+        </v-card>
+      </v-card-text>
     </v-card>
   </div>
 </template>
@@ -23,7 +43,8 @@ export default {
   data () {
     return {
       chart: null,
-      planetChartData: planetChartData
+      planetChartData: planetChartData,
+      lineSmoothing: 1
     }
   },
   computed: {
@@ -106,7 +127,7 @@ export default {
       this.chart.update()
     },
     createFunctionObject (yValues, name, color) {
-      return {
+      let settings = {
         label: name,
         data: yValues,
         borderWidth: 3,
@@ -114,6 +135,13 @@ export default {
         fill: false,
         pointRadius: 0
       }
+      console.log(this.lineSmoothing)
+      if (this.lineSmoothing) {
+        settings['cubicInterpolationMode'] = true
+      } else {
+        settings['lineTension'] = 0
+      }
+      return settings
     }
   }
 }

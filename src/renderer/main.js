@@ -9,17 +9,18 @@ import store from './store'
 import '@mdi/font/css/materialdesignicons.min.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
-// const child = require('child_process').execFile
-// const executablePath = `resources/app.asar/dist/StartPythonBackend.exe`
-//
-// child(executablePath, function (err, data) {
-//     if (err) {
-//         console.error(err)
-//         return
-//     }
-//
-//     console.log(data.toString())
-// })
+const {remote} = require('electron')
+const {app} = remote // or `const app = remote.app`
+const child = require('child_process').spawn
+const executablePath = `resources/app/backend/dist/StartPythonBackend/StartPythonBackend.exe`
+
+const pythonProcess = child(executablePath, [])
+
+console.log('v20')
+app.on('window-all-closed', function () {
+    app.quit()
+    pythonProcess.kill('SIGKILL')
+})
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'))
 Vue.http = Vue.prototype.$http = axios

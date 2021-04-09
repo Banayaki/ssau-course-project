@@ -32,12 +32,12 @@
                 </v-col>
                 <v-col cols="3">
                   <v-text-field v-model.number="parameters[name]"
+                                :hint="hints[name]"
                                 :rules="[rules.bigRule(name, parameters[name])]"
                                 clearable
                                 color="accent"
                                 dense
                                 filled
-                                hide-details
                                 type="number"></v-text-field>
                 </v-col>
                 <v-col cols="2"></v-col>
@@ -61,11 +61,20 @@
               <v-switch v-for="name in getAvailableSolvers" v-bind:key="name" v-model="parameters[name]"
                         :label="parametersNaming[name]" color="blue"
                         dense hide-details></v-switch>
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <div v-bind="attrs" v-on="on">
+                    <v-switch v-model="parameters['force_stability']" color="blue"
+                              dense hide-details label="Коррекция"></v-switch>
+                  </div>
+                </template>
+                <span>{{ parametersNaming['force_stability'] }}</span>
+              </v-tooltip>
             </v-col>
             <v-col cols="6">
-              <v-list>
+              <v-list class="pt-6">
                 <v-list-item v-for="name in getNumericalParametersNames" v-bind:key="name">
-                  <v-col class="align-self-center mr-5" cols="3">
+                  <v-col class="align-self-center mr-5 mb-4" cols="3">
                     <v-tooltip top>
                       <template v-slot:activator="{ on, attrs }">
                         <span v-bind="attrs" v-on="on" class="font-weight-bold float-right">{{ name }}:</span>
@@ -73,16 +82,14 @@
                       <span>{{ parametersNaming[name] }}</span>
                     </v-tooltip>
                   </v-col>
-                  <v-col cols="6">
-                    <v-text-field v-model.number="parameters[name]"
-                                  :rules="[rules.bigRule(name, parameters[name])]"
-                                  clearable
-                                  color="accent"
-                                  dense
-                                  filled
-                                  hide-details
-                                  type="number"></v-text-field>
-                  </v-col>
+                  <v-text-field v-model.number="parameters[name]"
+                                :hint="hints[name]"
+                                :rules="[rules.bigRule(name, parameters[name])]"
+                                clearable
+                                color="accent"
+                                dense
+                                filled
+                                type="number"></v-text-field>
                 </v-list-item>
               </v-list>
             </v-col>
@@ -109,11 +116,21 @@
       </v-card-actions>
     </v-card>
 
+    <v-card v-if="!getStabilityStatus.stable" class="m-2 p-2" color="background">
+      <v-card-title>
+        <span>Явная схема неустойчива</span><br>
+        <span
+            v-if="getStabilityStatus.newNt">Мелкость разбиения по времени была пересчитана. Используем Nt = {{
+            getStabilityStatus.newNt
+          }}</span>
+      </v-card-title>
+    </v-card>
+
   </div>
 </template>
 
 <script>
-import {SET_PARAMETER_VALUE, SOLVE_EQUATION} from '../store/modules/Equation'
+import {SET_PARAMETER_VALUE, SET_WAITING, SOLVE_EQUATION} from '../store/modules/Equation'
 
 export default {
   name: 'EquationView',
@@ -127,11 +144,20 @@ export default {
         'Nx': 'Мелкость разбиения по X (Nx)',
         'Nt': 'Мелкость разбиения по T (Nt)',
         'Implicit': 'Неявная схема',
-        'Explicit': 'Явная схема'
+        'Explicit': 'Явная схема',
+        'force_stability': 'Автоматическая коррекция мелкости при неудовлетворении условия устойчивости'
+      },
+      hints: {
+        'K': 'K > 0',
+        'C': 'C > 0',
+        'R': 'R > 0',
+        'T': 'T >= 0',
+        'Nx': '0 < Nx < 2000',
+        'Nt': '0 < Nt < 2000'
       },
       rules: {
         bigRule (name, value) {
-          if (name === 'Implicit' || name === 'Explicit') {
+          if (name === 'Implicit' || name === 'Explicit' || name === 'force_stability') {
             return true
           } else if (isNaN(parseFloat(value))) {
             return false
@@ -149,8 +175,9 @@ export default {
     }
   },
   created () {
+    this.$store.dispatch(SET_WAITING, false)
     if (!this.checkParameters) {
-      this.solveEquation()
+      setTimeout(this.solveEquation, 2000)
     }
   },
   computed: {
@@ -165,6 +192,9 @@ export default {
     },
     waitingForResponse () {
       return this.$store.getters.getWaitingStatus
+    },
+    getStabilityStatus () {
+      return this.$store.getters.getStabilityStatus
     }
   },
   methods: {

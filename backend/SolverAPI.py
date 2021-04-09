@@ -1,3 +1,4 @@
+import numpy as np
 from flask import Blueprint, request
 from flask.views import MethodView
 
@@ -15,30 +16,32 @@ class SolverAPI(MethodView):
         self.analytic_solver = EquationSolver()
         self.implicit_solver = ImplicitNumericalEquationSolver()
         self.explicit_solver = ExplicitNumericalEquationSolver()
+        self.max_clip_value = 10e+30
+        self.min_clip_value = -10e+30
 
     def post(self):
         self.logger.info('POST method is called')
         try:
             response_object = {}
             data = request.get_json()
-            print(data)
-            C, Explicit, Implicit, K, Nt, Nx, R, T = self.parse_object(data)
+            C, Explicit, Implicit, K, Nt, Nx, R, T, force_stability = self.parse_object(data)
 
             x, y = self.analytic_solver.solve(K, C, R, T, Nx)
             response_object['analytic'] = {
                 'x': x,
-                'y': y
+                'y': self.clip(y),
             }
 
             if data.get('Implicit', False):
                 impl_y = self.implicit_solver.solve(K, C, R, T, Nx, Nt)
                 response_object['implicit'] = {
-                    'y': impl_y
+                    'y': self.clip(impl_y)
                 }
             if data.get('Explicit', False):
-                expl_y = self.explicit_solver.solve(K, C, R, T, Nx, Nt)
+                expl_y, is_stable = self.explicit_solver.solve(K, C, R, T, Nx, Nt, force_stability)
                 response_object['explicit'] = {
-                    'y': expl_y
+                    'y': self.clip(expl_y),
+                    'stability': is_stable
                 }
 
             return make_response(response_object)
@@ -46,6 +49,11 @@ class SolverAPI(MethodView):
             self.logger.exception(e)
             return response_from_exception(e)
         pass
+
+    def clip(self, x):
+        # return np.clip(np.nan_to_num(x, nan=self.max_clip_value), self.min_clip_value, self.max_clip_value).tolist()
+        return np.nan_to_num(x, nan=0).tolist()
+        # return x
 
     def parse_object(self, data: dict):
         sorted_keys = sorted(data.keys())
